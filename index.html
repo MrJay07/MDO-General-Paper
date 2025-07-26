@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPSC MDO English Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .quiz-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .question-counter {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background-color: #edf2f7;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid transparent;
+        }
+        .option-label:hover:not(.disabled-option) {
+            background-color: #e2e8f0;
+            border-color: #4299e1;
+        }
+        .option-label input[type="radio"] {
+            margin-right: 15px;
+            accent-color: #4299e1;
+            transform: scale(1.2);
+        }
+        .option-label.selected {
+            background-color: #d1e7fd;
+            border-color: #2b6cb0;
+        }
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .nav-button {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+        .nav-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .prev-button {
+            background-color: #a0aec0;
+            color: #ffffff;
+        }
+        .prev-button:hover:not(:disabled) {
+            background-color: #718096;
+            transform: translateY(-2px);
+        }
+        .next-button, .submit-button {
+            background-color: #4299e1;
+            color: #ffffff;
+        }
+        .next-button:hover:not(:disabled), .submit-button:hover:not(:disabled) {
+            background-color: #2b6cb0;
+            transform: translateY(-2px);
+        }
+        .results-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e6fffa;
+            border-radius: 10px;
+            border: 1px solid #38b2ac;
+        }
+        .results-container h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        .result-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #a0aec0;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-item p {
+            font-size: 1rem;
+            color: #4a5568;
+        }
+        .result-item strong {
+            color: #2c5282;
+        }
+        /* Styles for immediate feedback on options */
+        .option-label.correct-answer-display {
+            background-color: #d4edda; /* Light green */
+            border-color: #28a745; /* Darker green */
+        }
+        .option-label.incorrect-answer-display {
+            background-color: #f8d7da; /* Light red */
+            border-color: #dc3545; /* Darker red */
+        }
+        .option-label.disabled-option {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        /* Styles for final results summary */
+        .correct-answer {
+            color: #047857; /* Green color for correct answer */
+            font-weight: 600;
+        }
+        .incorrect-answer {
+            color: #dc2626; /* Red color for incorrect answer */
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-4">BPSC MDO General Knowledge Quiz</h2>
+        <div id="quiz-area">
+            <div class="question-header">
+                <span id="question-counter" class="question-counter"></span>
+            </div>
+            <div id="question-display" class="question-text"></div>
+            <div id="options-display"></div>
+            <div id="feedback-message" class="mt-4 p-3 rounded-lg text-center font-semibold hidden"></div>
+        </div>
+        <div id="results-area" class="hidden">
+            <div class="results-container">
+                <h3>Quiz Results</h3>
+                <div id="result-list"></div>
+            </div>
+        </div>
+        <div class="navigation-buttons">
+            <button id="prev-button" class="nav-button prev-button" disabled>Previous</button>
+            <button id="next-button" class="nav-button next-button">Next</button>
+            <button id="submit-button" class="nav-button submit-button hidden">Submit Quiz</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "If $17+17=2895,$ $18+18=3245,$ $19+19=3615,$ then $23+23=?$",
+                options: ["5295", "6255", "2565", "5765"],
+                correctAnswer: "5295"
+            },
+            {
+                question: "The sum of interior angles of a polygon is twice the sum of its exterior angles. The polygon has",
+                options: ["6 sides", "4 sides", "5 sides", "7 sides"],
+                correctAnswer: "6 sides"
+            },
+            {
+                question: "The sum of three numbers is 98. If the ratio of first to second is 2:3 and that of second to third is 5:8, then the second number is",
+                options: ["27", "28", "30", "33"],
+                correctAnswer: "30"
+            },
+            {
+                question: "If $Z=52$ and $ACT=48,$ then $BAT=?$",
+                options: ["44", "46", "48", "50"],
+                correctAnswer: "46"
+            },
+            {
+                question: "Find the wrong number in the following series: 3, 8, 15, 24, 34, 48, 63",
+                options: ["24", "34", "48", "63"],
+                correctAnswer: "34"
+            },
+            {
+                question: "The next term in the series C, E, G, J, M, Q is",
+                options: ["R", "U", "S", "T"],
+                correctAnswer: "U"
+            },
+            {
+                question: "The sum of all two-digit numbers divisible by 5 is",
+                options: ["945", "675", "435", "565"],
+                correctAnswer: "945"
+            },
+            {
+                question: "Which of the following can be used to illustrate that all prime numbers are not odd?",
+                options: ["1", "2", "3", "4"],
+                correctAnswer: "2"
+            },
+            {
+                question: "How many terms are there in the following GP? 3, 6, 12, 24, ..., 384",
+                options: ["11", "10", "9", "8"],
+                correctAnswer: "8"
+            },
+            {
+                question: "The sum of the present ages of a father and his son is 60 years. Five years ago, the father's age was four times the age of the son. Now the age of the son is",
+                options: ["5 years", "10 years", "15 years", "20 years"],
+                correctAnswer: "15 years"
+            },
+            {
+                question: "Khelo India Youth Games, 2021, scheduled to be held in Haryana, has permitted four 'my country games' along with 16 others already in the list. These four new 'my country games' are",
+                options: ["Gatka, Kho Kho, Boxing and Judo", "Mallakhamba, Thang-Ta, Gatka and Judo", "Kalaripayattu, Mallakhamba, Thang-Ta and Gatka", "Kalaripayattu, Mallakhamba, Judo and Kho Kho"],
+                correctAnswer: "Kalaripayattu, Mallakhamba, Thang-Ta and Gatka"
+            },
+            {
+                question: "Vikas Krishan is associated with",
+                options: ["Chess", "Boxing", "Taekwondo", "Golf"],
+                correctAnswer: "Boxing"
+            },
+            {
+                question: "Skywalk Glass Bridge in Rajgir, Nalanda, Bihar is second in India. The first Skywalk Glass Bridge in India is in",
+                options: ["Arunachal Pradesh", "Sikkim", "Meghalaya", "Manipur"],
+                correctAnswer: "Sikkim"
+            },
+            {
+                question: "Shivnath Singh of Buxar, Bihar was adjudged as the best sportsman of the country in 1974 for getting Gold Medal in 1974 Asian Games in",
+                options: ["Wrestling", "Running", "Hammer Throw", "Shot Put"],
+                correctAnswer: "Running"
+            },
+            {
+                question: "The Nobel Prize in Physiology/Medicine, 2020 was awarded jointly to three famous scientists for the discovery of",
+                options: ["Hepatitis C virus", "COVID-19 decoding", "vaccine for Malaria", "vaccine for Swine Flu"],
+                correctAnswer: "Hepatitis C virus"
+            },
+            {
+                question: "Which city was selected as the host city for the Summer Olympics, 2020 during the 125th IOC Session held in Buenos Aires, Argentina?",
+                options: ["Seoul", "Tokyo", "Beijing", "Toronto"],
+                correctAnswer: "Tokyo"
+            },
+            {
+                question: "A great conjunction of two planets appeared as one bright star on 21st December, 2020. These two planets are",
+                options: ["Mars and Jupiter", "Mars and Mercury", "Jupiter and Saturn", "Mercury and Venus"],
+                correctAnswer: "Jupiter and Saturn"
+            },
+            {
+                question: "The State bird and the State flower of Bihar are",
+                options: ["Sparrow and Marigold", "Parrot and Rose", "Sparrow and Rose", "Parrot and Marigold"],
+                correctAnswer: "Sparrow and Marigold"
+            },
+            {
+                question: "In the Northern Hemisphere, which days are celebrated as the longest day with the shortest night and the longest night with the shortest day?",
+                options: ["20th June and 20th December", "21st June and 21st December", "22nd June and 22nd December", "23rd June and 23rd December"],
+                correctAnswer: "21st June and 21st December"
+            },
+            {
+                question: "In the 2nd Innings of the 1st Test of Cricket played in Adelaide against Australia on 17.12.2020, who among the following Indian cricketers scored the highest run only 9 of the total score 36 of the team?",
+                options: ["U. T. Yadav", "Virat Kohli", "G. H. Vihari", "M. A. Agarwal"],
+                correctAnswer: "M. A. Agarwal"
+            },
+            {
+                question: "Which of the following companies is the largest producer (in volume) of vaccine?",
+                options: ["AstraZeneca", "Pfizer", "SII", "Zydus Cadila"],
+                correctAnswer: "SII"
+            },
+            {
+                question: "The new strain of COVID-19 is",
+                options: ["VUI-COVID-19-20", "VUI-2020-21", "VUI-C19/2020", "VUI-202012/01"],
+                correctAnswer: "VUI-202012/01"
+            },
+            {
+                question: "Dassault Rafale, a multirole fighter aircraft, is designed and built in",
+                options: ["Israel", "Finland", "France", "Ireland"],
+                correctAnswer: "France"
+            },
+            {
+                question: "In which year was Mangalyaan launched?",
+                options: ["2013", "2015", "2017", "2019"],
+                correctAnswer: "2013"
+            },
+            {
+                question: "Who used to call himself as 'Bad Gandhian'?",
+                options: ["Khan Abdul Ghaffar Khan", "Ramdhari Singh Dinkar", "Rambriksh Benipuri", "Jayaprakash Narayan"],
+                correctAnswer: "Jayaprakash Narayan"
+            },
+            {
+                question: "The movie, 3 Idiots is based on the novel, Five Point Someone. It is written by",
+                options: ["Abhishek Kapoor", "Sharmila Tagore", "Shashi Tharoor", "Chetan Bhagat"],
+                correctAnswer: "Chetan Bhagat"
+            },
+            {
+                question: "In Summer Olympics from 1900 to 2016, India has won the highest Gold Medals in",
+                options: ["Badminton (Women)", "Hockey (Men)", "Hockey (Women)", "Wrestling (Women)"],
+                correctAnswer: "Hockey (Men)"
+            },
+            {
+                question: "The Central Vista Project is related to",
+                options: ["Road Project", "River Connecting Project", "Parliament Extension", "New Parliament Building Construction"],
+                correctAnswer: "New Parliament Building Construction"
+            },
+            {
+                question: "The highest exporting commodity from India in 2019-20 is",
+                options: ["artificial jewellery", "organic chemicals", "cereals", "petroleum products"],
+                correctAnswer: "petroleum products"
+            },
+            {
+                question: "The world's largest renewable energy (solar and wind) park is likely to generate",
+                options: ["15000 MW", "20000 MW", "25000 MW", "30000 MW"],
+                correctAnswer: "30000 MW"
+            },
+            {
+                question: "Learned women Lopamudra, Visvavara and Ghosha are related to which period?",
+                options: ["Rig Vedic Period", "Epic Age", "Mauryan Period", "Gupta Period"],
+                correctAnswer: "Rig Vedic Period"
+            },
+            {
+                question: "Through which Rock Edict of Ashoka, we learn about his conquest of Kalinga?",
+                options: ["V", "IX", "XI", "XIII"],
+                correctAnswer: "XIII"
+            },
+            {
+                question: "The Saka Era began in which year?",
+                options: ["58 BC", "78 BC", "58 AD", "78 AD"],
+                correctAnswer: "78 AD"
+            },
+            {
+                question: "During whose reign, Hiuen Tsang came to India?",
+                options: ["Chandragupta Maurya", "Kanishka", "Chandragupta Vikramaditya", "Harshavardhana"],
+                correctAnswer: "Harshavardhana"
+            },
+            {
+                question: "Who established the City of Agra?",
+                options: ["Iltutmish", "Alauddin Khilji", "Firoz Shah Tughlaq", "Sikandar Lodi"],
+                correctAnswer: "Sikandar Lodi"
+            },
+            {
+                question: "During the Sultanate Period, which dynasty ruled for the maximum period?",
+                options: ["Khilji", "Tughlaq", "Sayyid", "Lodi"],
+                correctAnswer: "Tughlaq"
+            },
+            {
+                question: "Who among the following was not a son of Shah Jahan?",
+                options: ["Dara Shikoh", "Parviz", "Shuja", "Murad"],
+                correctAnswer: "Parviz"
+            },
+            {
+                question: "Which one of the following is not a work of Tulsidas?",
+                options: ["Gitavali", "Bijak", "Kavitawali", "Vinaya Patrika"],
+                correctAnswer: "Bijak"
+            },
+            {
+                question: "Subhas Chandra Bose renamed Andaman Islands as",
+                options: ["Saubhagya", "Balidan", "Shaheed", "Swaraj"],
+                correctAnswer: "Shaheed"
+            },
+            {
+                question: "Who established 'Satyashodhak Samaj'?",
+                options: ["D. K. Karve", "Jyotiba Phule", "Dr. B. R. Ambedkar", "Ramaswamy Naicker"],
+                correctAnswer: "Jyotiba Phule"
+            },
+            {
+                question: "Who was killed by Sardar Udham Singh in London?",
+                options: ["Saunders", "Lord Mayo", "General Dyer", "Sir Michael O'Dwyer"],
+                correctAnswer: "Sir Michael O'Dwyer"
+            },
+            {
+                question: "Who was the Governor-General of India at the time of the Revolt of 1857 AD?",
+                options: ["Lord Canning", "Lord Dalhousie", "Lord Elgin I", "Lord Dufferin"],
+                correctAnswer: "Lord Canning"
+            },
+            {
+                question: "Which of the following events occurred in the last?",
+                options: ["Declaration of Wavell Plan", "Quit India Resolution", "Arrival of Cripps Mission", "Arrival of Cabinet Mission"],
+                correctAnswer: "Arrival of Cabinet Mission"
+            },
+            {
+                question: "Who was the first European to become the President of the Indian National Congress?",
+                options: ["A. Webb", "George Yule", "Sir Henry Cotton", "William Wedderburn"],
+                correctAnswer: "George Yule"
+            },
+            {
+                question: "During Ashoka's Period, where was the Third Buddhist Council held?",
+                options: ["Gaya", "Pataliputra", "Vaishali", "Rajgriha"],
+                correctAnswer: "Pataliputra"
+            },
+            {
+                question: "In which year was Bihar Landholders' Association established in Patna?",
+                options: ["1876 AD", "1878 AD", "1880 AD", "1882 AD"],
+                correctAnswer: "1878 AD"
+            },
+            {
+                question: "When was the attempt of murder made on Kingsford in Muzaffarpur?",
+                options: ["1908 AD", "1909 AD", "1910 AD", "1911 AD"],
+                correctAnswer: "1908 AD"
+            },
+            {
+                question: "Where did Raj Kumar Shukla go to invite Gandhiji to Champaran?",
+                options: ["Bhagalpur", "Delhi", "Ahmedabad", "Lucknow"],
+                correctAnswer: "Lucknow"
+            },
+            {
+                question: "In 1922 AD, at which place in Bihar was the Session of the Indian National Congress held?",
+                options: ["Darbhanga", "Patna", "Samastipur", "Gaya"],
+                correctAnswer: "Gaya"
+            },
+            {
+                question: "During Quit India Movement in 1942 AD, Dr. Rajendra Prasad was arrested from which place?",
+                options: ["Patna", "Katihar", "Muzaffarpur", "Arrah"],
+                correctAnswer: "Patna"
+            },
+            {
+                question: "The North Magnetic Pole is situated in which one of the following countries?",
+                options: ["Russia", "Denmark", "Canada", "Norway"],
+                correctAnswer: "Canada"
+            },
+            {
+                question: "Which one of the following pairs of Landmasses and Capes is not matched correctly?",
+                options: ["Chile Cape Leeuwin", "South Africa-Cape of Good Hope", "Denmark (Greenland)-Cape Farewell", "India-Cape Comorin"],
+                correctAnswer: "Chile Cape Leeuwin"
+            },
+            {
+                question: "The highest peak in the world outside the Himalayan region is",
+                options: ["Mount Elbrus", "Mount Aconcagua", "Mount Kilimanjaro", "Mount Denali"],
+                correctAnswer: "Mount Aconcagua"
+            },
+            {
+                question: "The longest river of the European Continent is",
+                options: ["Danube", "Ural", "Volga", "Dnieper"],
+                correctAnswer: "Volga"
+            },
+            {
+                question: "The highest tungsten-producing country in the world (2019) is",
+                options: ["Russia", "Bolivia", "Vietnam", "China"],
+                correctAnswer: "China"
+            },
+            {
+                question: "Which one of the following pairs of National Parks and States is not matched correctly?",
+                options: ["Mahatma Gandhi Marine National Park-Gujarat", "Guru Ghasidas National Park-Chhattisgarh", "Rajaji National Park-Uttarakhand", "Kasu Brahmananda Reddy National Park-Telangana"],
+                correctAnswer: "Mahatma Gandhi Marine National Park-Gujarat"
+            },
+            {
+                question: "The solar power park with the largest capacity in India is located at",
+                options: ["Rewa", "Bhadla", "Kurnool", "Pavagada"],
+                correctAnswer: "Bhadla"
+            },
+            {
+                question: "The onshore wind farm in India with the biggest capacity is located at",
+                options: ["Kanyakumari", "Jaisalmer", "Dhule", "Sangli"],
+                correctAnswer: "Kanyakumari"
+            },
+            {
+                question: "The State which contributes more than 70 percent to the salt production of India is",
+                options: ["Tamil Nadu", "Rajasthan", "Gujarat", "Maharashtra"],
+                correctAnswer: "Gujarat"
+            },
+            {
+                question: "Anamudi Peak is situated at the borders of which districts in India?",
+                options: ["Nilgiris-Coimbatore", "Ernakulam-Idukki", "Chikmagalur-Kodagu", "Ahmednagar-Nashik"],
+                correctAnswer: "Ernakulam-Idukki"
+            },
+            {
+                question: "The number of agro-climatic zones in India is",
+                options: ["5", "7", "12", "15"],
+                correctAnswer: "15"
+            },
+            {
+                question: "Which one of the following pairs of Leading plantation crops and States is not matched correctly?",
+                options: ["Rubber-Andhra Pradesh", "Coconut-Kerala", "Tea-Assam", "Areca nut-Karnataka"],
+                correctAnswer: "Rubber-Andhra Pradesh"
+            },
+            {
+                question: "The place receiving highest average annual rainfall in Bihar is",
+                options: ["Purnea", "Araria", "Kishanganj", "Bettiah"],
+                correctAnswer: "Kishanganj"
+            },
+            {
+                question: "Which one of the following districts is not a part of the Maithili Plain in Bihar?",
+                options: ["East Champaran", "Madhubani", "Vaishali", "Katihar"],
+                correctAnswer: "Katihar"
+            },
+            {
+                question: "Terai soils are predominant along the",
+                options: ["northern boundary of Bihar", "southern boundary of Bihar", "Gandak river", "Kosi river"],
+                correctAnswer: "northern boundary of Bihar"
+            },
+            {
+                question: "The largest and the smallest districts in Bihar in terms of geographical area are",
+                options: ["Gaya and Arwal", "Rohtas and Jehanabad", "West Champaran and Sheohar", "East Champaran and Sheikhpura"],
+                correctAnswer: "West Champaran and Sheohar"
+            },
+            {
+                question: "Geographically the largest Wildlife Sanctuary of Bihar is",
+                options: ["Valmiki", "Kaimur", "Bhimbandh", "Pant (Rajgir)"],
+                correctAnswer: "Kaimur"
+            },
+            {
+                question: "The Himalayan foothill areas are the parts of which district in Bihar?",
+                options: ["Madhubani", "Sitamarhi", "Sheohar", "West Champaran"],
+                correctAnswer: "West Champaran"
+            },
+            {
+                question: "The National Research Centre on Litchi is located at",
+                options: ["Darbhanga", "Patna", "Muzaffarpur", "Bhagalpur"],
+                correctAnswer: "Muzaffarpur"
+            },
+            {
+                question: "Which one of the following States does not produce mineral oil in India?",
+                options: ["Jharkhand", "Gujarat", "Assam", "Rajasthan"],
+                correctAnswer: "Jharkhand"
+            },
+            {
+                question: "Young's modulus is the property of",
+                options: ["solids only", "liquids only", "gases only", "both solids and liquids"],
+                correctAnswer: "solids only"
+            },
+            {
+                question: "The product of force and velocity is called as",
+                options: ["energy", "momentum", "power", "work"],
+                correctAnswer: "power"
+            },
+            {
+                question: "The unit of astronomical distance is",
+                options: ["angstrom", "light-year", "lux", "weber"],
+                correctAnswer: "light-year"
+            },
+            {
+                question: "The layer of which gas blocks UV-radiations of the Sun so that they do not reach the Earth?",
+                options: ["Ammonia", "Carbon dioxide", "Nitrogen", "Ozone"],
+                correctAnswer: "Ozone"
+            },
+            {
+                question: "1 micron is equal to how many meters?",
+                options: ["$10^{-4}$", "$10^{-6}$", "$10^{-8}$", "$10^{-9}$"],
+                correctAnswer: "$10^{-6}$"
+            },
+            {
+                question: "The mirror used in the head light of vehicles is",
+                options: ["concave mirror", "convex mirror", "plane mirror", "parabolic mirror"],
+                correctAnswer: "parabolic mirror"
+            },
+            {
+                question: "Sound energy is converted to electrical energy by",
+                options: ["gramophone", "solar cell", "loudspeaker", "microphone"],
+                correctAnswer: "microphone"
+            },
+            {
+                question: "Forged documents are detected by",
+                options: ["a-rays", "B-rays", "y-rays", "UV-rays"],
+                correctAnswer: "UV-rays"
+            },
+            {
+                question: "The sound wave travels fastest in",
+                options: ["air", "water", "steel", "vacuum"],
+                correctAnswer: "steel"
+            },
+            {
+                question: "Ohm's law is represented as ($V=$ potential difference and $I=$ current)",
+                options: ["$V=I^{2}$", "$V=\sqrt{I}$", "$V/I=$ constant", "$V=1/I$"],
+                correctAnswer: "$V/I=$ constant"
+            },
+            {
+                question: "The metal used as a catalyst in the hydrogenation of oil is",
+                options: ["Cu", "Ni", "Pb", "Pt."],
+                correctAnswer: "Ni"
+            },
+            {
+                question: "For artificial ripening of green fruits, the gas used is",
+                options: ["acetylene", "ethane", "ethylene", "carbon dioxide"],
+                correctAnswer: "ethylene"
+            },
+            {
+                question: "Vinegar is 5-8% aqueous solution of",
+                options: ["acetic acid", "citric acid", "hydrochloric acid", "oxalic acid"],
+                correctAnswer: "acetic acid"
+            },
+            {
+                question: "The gas filled in refrigerators is",
+                options: ["acetylene", "butane", "chlorofluorocarbon", "methane"],
+                correctAnswer: "chlorofluorocarbon"
+            },
+            {
+                question: "The most malleable metal among the following is",
+                options: ["iron", "silver", "platinum", "gold"],
+                correctAnswer: "gold"
+            },
+            {
+                question: "The noble gases are",
+                options: ["monoatomic", "diatomic", "triatomic", "tetra-atomic"],
+                correctAnswer: "monoatomic"
+            },
+            {
+                question: "Oil of vitriol is",
+                options: ["acetic acid", "hydrochloric acid", "sulfuric acid", "nitric acid"],
+                correctAnswer: "sulfuric acid"
+            },
+            {
+                question: "The common name of calcium sulfate is",
+                options: ["Epsom salt", "gypsum salt", "potash alum", "blue vitriol"],
+                correctAnswer: "gypsum salt"
+            },
+            {
+                question: "The half-life of an isotope is 2 hours. The fraction left behind after 6 hours will be",
+                options: ["$\\frac{1}{3}$", "$\\frac{1}{4}$", "$\\frac{1}{6}$", "$\\frac{1}{8}$"],
+                correctAnswer: "$\\frac{1}{8}$"
+            },
+            {
+                question: "The chemical used in the preparation of dynamite is",
+                options: ["glycol", "glycerol", "ethyl alcohol", "acetone"],
+                correctAnswer: "glycerol"
+            },
+            {
+                question: "The red, blue and purple colours of plants are due to the pigment",
+                options: ["anthocyanin", "carotene", "chlorophyll", "xanthophyll"],
+                correctAnswer: "anthocyanin"
+            },
+            {
+                question: "Potato is a modified form of",
+                options: ["fruit", "leaf", "stem", "root"],
+                correctAnswer: "stem"
+            },
+            {
+                question: "Pollination caused by wind is called as",
+                options: ["anemophily", "entomophily", "hydrophily", "zoophily"],
+                correctAnswer: "anemophily"
+            },
+            {
+                question: "Plants convert nitrates from the soil to",
+                options: ["ammonia", "free nitrogen", "urea", "protein"],
+                correctAnswer: "protein"
+            },
+            {
+                question: "The plants that develop in dry conditions are called as",
+                options: ["hydrophytes", "mesophytes", "lithophytes", "xerophytes"],
+                correctAnswer: "xerophytes"
+            },
+            {
+                question: "Mumps is a disease caused by",
+                options: ["fungus", "virus", "bacteria", "protozoa"],
+                correctAnswer: "virus"
+            },
+            {
+                question: "In human body, the number of chromosomes is",
+                options: ["42", "44", "46", "48"],
+                correctAnswer: "46"
+            },
+            {
+                question: "Jaundice is caused due to the malfunctioning of",
+                options: ["pancreas", "stomach", "liver", "kidney"],
+                correctAnswer: "liver"
+            },
+            {
+                question: "Entomology deals with the",
+                options: ["behaviour of human beings", "formation of rocks", "diseases caused by bacteria", "study of insects"],
+                correctAnswer: "study of insects"
+            },
+            {
+                question: "The haemoglobin in 100 gm of blood of normal adult (male) is",
+                options: ["10 gm", "14 gm", "18 gm", "24 gm"],
+                correctAnswer: "14 gm"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        const userAnswers = new Array(questions.length).fill(null);
+
+        const questionDisplay = document.getElementById('question-display');
+        const questionCounter = document.getElementById('question-counter');
+        const optionsDisplay = document.getElementById('options-display');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        const submitButton = document.getElementById('submit-button');
+        const quizArea = document.getElementById('quiz-area');
+        const resultsArea = document.getElementById('results-area');
+        const resultList = document.getElementById('result-list');
+        const feedbackMessageDiv = document.getElementById('feedback-message');
+
+        // Function to update navigation button states
+        function updateNavigationButtons() {
+            prevButton.disabled = currentQuestionIndex === 0;
+            // Next button is disabled if no answer is selected for the current question OR if it's the last question
+            nextButton.disabled = userAnswers[currentQuestionIndex] === null || currentQuestionIndex === questions.length - 1;
+
+            // Show/hide submit button and next button based on current question index and answer status
+            if (currentQuestionIndex === questions.length - 1) {
+                submitButton.classList.remove('hidden');
+                nextButton.classList.add('hidden');
+            } else {
+                submitButton.classList.add('hidden');
+                nextButton.classList.remove('hidden'); // Always show next button, but it might be disabled
+            }
+        }
+
+        function renderQuestion() {
+            const questionData = questions[currentQuestionIndex];
+            // Update question counter
+            questionCounter.textContent = `${currentQuestionIndex + 1}/${questions.length}`;
+            
+            // Add serial number to the question
+            questionDisplay.innerHTML = `${questionData.question}`;
+
+            optionsDisplay.innerHTML = '';
+            feedbackMessageDiv.classList.add('hidden'); // Hide feedback when new question loads
+            feedbackMessageDiv.textContent = ''; // Clear previous feedback text
+
+            questionData.options.forEach((option, index) => {
+                const optionId = `q${currentQuestionIndex}-option${index}`;
+                const isSelected = userAnswers[currentQuestionIndex] === option;
+
+                const label = document.createElement('label');
+                label.htmlFor = optionId;
+                label.className = `option-label ${isSelected ? 'selected' : ''}`;
+
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `question-${currentQuestionIndex}`;
+                radio.id = optionId;
+                radio.value = option;
+                radio.checked = isSelected;
+
+                const optionTextSpan = document.createElement('span');
+                optionTextSpan.innerHTML = option; // Use innerHTML for LaTeX in options
+
+                label.appendChild(radio);
+                label.appendChild(optionTextSpan);
+                optionsDisplay.appendChild(label);
+
+                // If an answer was previously selected for this question, apply feedback classes and disable radios
+                if (userAnswers[currentQuestionIndex] !== null) {
+                    radio.disabled = true;
+                    label.classList.add('disabled-option'); // Add a class to dim disabled options
+
+                    if (option === questionData.correctAnswer) {
+                        label.classList.add('correct-answer-display');
+                    }
+                    if (option === userAnswers[currentQuestionIndex] && option !== questionData.correctAnswer) {
+                        label.classList.add('incorrect-answer-display');
+                    }
+                    // Show feedback message for already answered questions
+                    if (userAnswers[currentQuestionIndex] === questionData.correctAnswer) {
+                        feedbackMessageDiv.innerHTML = 'Correct!';
+                        feedbackMessageDiv.className = 'mt-4 p-3 rounded-lg text-center font-semibold bg-green-100 text-green-800';
+                    } else {
+                        feedbackMessageDiv.innerHTML = `Incorrect. The correct answer was: ${questionData.correctAnswer}`;
+                        feedbackMessageDiv.className = 'mt-4 p-3 rounded-lg text-center font-semibold bg-red-100 text-red-800';
+                    }
+                    feedbackMessageDiv.classList.remove('hidden');
+                } else {
+                    // Only add event listener if not already answered
+                    radio.addEventListener('change', (event) => {
+                        const selectedOption = event.target.value;
+                        userAnswers[currentQuestionIndex] = selectedOption;
+
+                        // Disable all radio buttons for the current question
+                        document.querySelectorAll(`input[name="question-${currentQuestionIndex}"]`).forEach(r => r.disabled = true);
+                        document.querySelectorAll(`#options-display .option-label`).forEach(lbl => {
+                            lbl.classList.add('disabled-option'); // Apply disabled style to all options
+                            lbl.classList.remove('selected'); // Remove selected class from all
+                        });
+
+                        // Apply feedback classes
+                        label.classList.add('selected'); // Keep selected class for the chosen one
+                        if (selectedOption === questionData.correctAnswer) {
+                            label.classList.add('correct-answer-display');
+                            feedbackMessageDiv.innerHTML = 'Correct!';
+                            feedbackMessageDiv.className = 'mt-4 p-3 rounded-lg text-center font-semibold bg-green-100 text-green-800';
+                        } else {
+                            label.classList.add('incorrect-answer-display');
+                            // Highlight the correct answer as well
+                            document.querySelectorAll(`#options-display .option-label`).forEach(lbl => {
+                                if (lbl.querySelector('input').value === questionData.correctAnswer) {
+                                    lbl.classList.add('correct-answer-display');
+                                }
+                            });
+                            feedbackMessageDiv.innerHTML = `Incorrect. The correct answer was: ${questionData.correctAnswer}`;
+                            feedbackMessageDiv.className = 'mt-4 p-3 rounded-lg text-center font-semibold bg-red-100 text-red-800';
+                        }
+                        feedbackMessageDiv.classList.remove('hidden');
+
+                        // Typeset MathJax in feedback message
+                        if (typeof MathJax !== 'undefined') {
+                            MathJax.typesetPromise([feedbackMessageDiv]).catch((err) => console.error("MathJax typesetting failed:", err));
+                        }
+                        updateNavigationButtons(); // Update buttons after selection
+                    });
+                }
+            });
+
+            updateNavigationButtons();
+            // Render MathJax for question and options
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise([questionDisplay, optionsDisplay]).catch((err) => console.error("MathJax typesetting failed:", err));
+            }
+        }
+
+        function showResults() {
+            quizArea.classList.add('hidden');
+            resultsArea.classList.remove('hidden');
+            prevButton.classList.add('hidden');
+            nextButton.classList.add('hidden');
+            submitButton.classList.add('hidden');
+
+            resultList.innerHTML = '';
+            let correctCount = 0;
+            questions.forEach((questionData, index) => {
+                const userAnswer = userAnswers[index];
+                const isCorrect = userAnswer === questionData.correctAnswer;
+                if (isCorrect) {
+                    correctCount++;
+                }
+
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.innerHTML = `
+                    <p><strong>Question ${index + 1}:</strong> ${questionData.question}</p>
+                    <p><strong>Your Answer:</strong> <span class="${isCorrect ? 'correct-answer' : 'incorrect-answer'}">${userAnswer !== null ? userAnswer : 'Not answered'}</span></p>
+                    <p><strong>Correct Answer:</strong> <span class="correct-answer">${questionData.correctAnswer}</span></p>
+                `;
+                resultList.appendChild(resultItem);
+            });
+
+            const scoreDisplay = document.createElement('div');
+            scoreDisplay.className = 'text-lg font-bold text-center mt-4';
+            scoreDisplay.textContent = `You scored ${correctCount} out of ${questions.length} questions correctly!`;
+            resultList.prepend(scoreDisplay); // Add score at the top
+
+            // Render MathJax for results if available
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise([resultList]).catch((err) => console.error("MathJax typesetting failed:", err));
+            }
+        }
+
+        prevButton.addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+            }
+        });
+
+        nextButton.addEventListener('click', () => {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+            }
+        });
+
+        submitButton.addEventListener('click', () => {
+            showResults();
+        });
+
+        // Initialize quiz
+        renderQuestion();
+
+        // Load MathJax for LaTeX rendering
+        const mathJaxScript = document.createElement('script');
+        mathJaxScript.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+        mathJaxScript.async = true;
+        document.head.appendChild(mathJaxScript);
+    </script>
+</body>
+</html>
